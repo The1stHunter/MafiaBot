@@ -12,7 +12,7 @@ CONSTRAINT check_color CHECK (Color in ('Black', 'Red')));"""
 sql_chats = """CREATE TABLE Chats(
 Id INTEGER PRIMARY KEY,
 Status TEXT NOT NULL,
-CONSTRAINT check_status CHECK (Status in ('NotInGame', 'Discussion', 'Vote', 'Mafia', 'Sheriff')));"""
+CONSTRAINT check_status CHECK (Status in ('Registration', 'GetRole', 'Discussion', 'Vote', 'Mafia', 'Sheriff')));"""
 
 # Создание таблицы игроков
 sql_players = """CREATE TABLE Players(
@@ -22,9 +22,11 @@ Surname TEXT,
 Chat INTEGER,
 Role TEXT,
 Game_status TEXT,
+Alive_status INTEGER,
 Stand_in_vote_status INTEGER,
 Vote_status INTEGER,
-CONSTRAINT check_game_status CHECK (Game_status in ('NotInGame', 'Registered', 'GetRole', 'InGame', 'Killed')),
+CONSTRAINT check_game_status CHECK (Game_status in ('Registered', 'GetRole', 'InGame')),
+CONSTRAINT check_alive_status CHECK (Alive_status in (0, 1)),
 CONSTRAINT check_stand_in_cote_status CHECK (Stand_in_vote_status in (0, 1)),
 CONSTRAINT check_vote_status CHECK (Vote_status in (0, 1)),
 CONSTRAINT fk_role FOREIGN KEY (Role) REFERENCES Roles (Name),
