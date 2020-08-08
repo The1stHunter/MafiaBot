@@ -1,5 +1,3 @@
-from random import shuffle
-
 import telebot
 from config import token
 import roles
