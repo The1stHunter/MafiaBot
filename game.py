@@ -46,8 +46,6 @@ class Game:
             # Проводим проверку победы
             if self.check_end_game():
                 phrase += f'Стоп-игра! {self.winner}'
-            else:
-                phrase += '\nВ городе ночь.'
         elif self.condition == 'Registration':
             phrase = 'Регистрация завершена! Напишите мне в личку /role чтобы узнать свои роли (Моя личка ' \
                      'https://t.me/TFH_mafia_bot) И приступайте к обсуждению.'
