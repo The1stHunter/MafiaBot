@@ -73,7 +73,8 @@ def endreg(message: telebot.types.Message):
                 work_with_db(dbu.set_chat_status, message.chat.id, 'GetRole')
                 work_with_db(dbu.reg_users, message.chat.id)
                 bot.send_message(message.chat.id, """Регистрация окончена! 
-Пишите мне в личку /role""")
+Пишите мне в личку /role
+(Моя личка https://t.me/TFH_mafia_bot)""")
             else:
                 bot.send_message(message.chat.id, f"""Похоже у нас проблемы с количеством(
 Я могу провести игру только для {roles.minimum}-{roles.maximum} человек""")
@@ -88,6 +89,10 @@ def role(message):
             # Отправляем ему его роль
             player_role = work_with_db(dbu.get_players_info, message.chat.id)[4]
             bot.send_message(message.chat.id, f'Ты - {player_role}!')
+            # Меняем статус игрока на Получил роль
+            work_with_db(dbu.change_players_info, message.chat.id, 'Game_status', 'GetRole')
+            # Если все игроки получили роли начинается Обсуждение
+            # TODO: сделать
 
 
 @bot.message_handler(commands=['endgame'])
@@ -95,6 +100,7 @@ def endgame(message: telebot.types.Message):
     """Принудительное завершение игры"""
     shu.delete_info(message.chat.id)
     work_with_db(dbu.delete_chat, message.chat.id)
+    bot.send_message(message.chat.id, 'Игра окончена')
 
 
 if __name__ == '__main__':

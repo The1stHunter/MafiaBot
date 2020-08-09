@@ -96,3 +96,12 @@ def get_players_info(cursor: sqlite3.Cursor, player_id: int):
 
     result = cursor.execute(sql, (player_id,)).fetchall()
     return result[0]
+
+
+def change_players_info(cursor: sqlite3.Cursor, player_id: int, key: str, value):
+    """Смена статуса у игрока"""
+    sql = """UPDATE Players
+    SET (?)=(?),
+    WHERE Id=(?);"""
+
+    cursor.execute(sql, (key, value, player_id))
