@@ -4,7 +4,7 @@ class Player:
         self.id = id
         self.first_name = first_name
         self.last_name = last_name
-        self.role = ''
+        self.role = None
         self.alive = 1
         self.vote = 0
         self.votes_count = 0
