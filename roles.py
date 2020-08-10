@@ -1,5 +1,6 @@
 mafia, don, civilian, sheriff = 'Мафия', 'Дон', 'Мирный житель', 'Коммисар'
 minimum, maximum = 1, 7
+don_appear = 6
 
 
 class Role:

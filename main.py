@@ -80,6 +80,11 @@ def role(message: telebot.types.Message):
             game = utils.get_game(chat)
             bot.send_message(message.from_user.id, f'Ты - {game.get_role_by_id(message.from_user.id)}!')
             utils.change_role_status(message.from_user.id, '3')
+            # Если это был последний получивший роль - переходим на следующую стадию
+            if utils.get_count_ready_role(chat) == len(game.players):
+                msg = game.next_condition()
+                utils.set_game(chat, game)
+                bot.send_message(chat, msg)
         elif utils.get_role_status(message.from_user.id) == '3':
             chat = utils.get_chat(message.from_user.id)
             game = utils.get_game(chat)
@@ -117,10 +122,19 @@ def vote(message: telebot.types.Message):
 def callback_worker(call: types.CallbackQuery):
     # TODO: сделать так чтобы это работало в многопоточности
     game = utils.get_game(call.message.chat.id)
-    # Если сейчас не стадия голосования
+    # Если сейчас стадия голосования
     if game.condition == 'Vote':
         msg = game.vote(int(call.data), int(call.from_user.id))
         bot.send_message(call.message.chat.id, msg)
+        # Если все проголосовали, переходим на следующую стадию
+        if game.count_vote == len(game.players):
+            msg = game.next_condition()
+            bot.send_message(call.message.chat.id, msg)
+        # Если игра закончилась
+        if game.check_end_game():
+            # utils.end_game(call.message.chat.id)
+            # utils.delete_chat(call.message.chat.id)
+            pass
         utils.set_game(call.message.chat.id, game)
 
 
