@@ -1,6 +1,8 @@
 /.idea/
+/database/
 /venv/
+/mafiaBot.txt
 /config.py
 /test.py
-/data/
-/mafiaBot.txt
+/shelve/
+/__pycache__/

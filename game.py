@@ -47,6 +47,7 @@ class Game:
             if self.check_end_game():
                 phrase += f'Стоп-игра! {self.winner}'
         elif self.condition == 'Registration':
+            self.get_roles()
             phrase = 'Регистрация завершена! Напишите мне в личку /role чтобы узнать свои роли (Моя личка ' \
                      'https://t.me/TFH_mafia_bot) И приступайте к обсуждению.'
         # Зацикливание переходов
@@ -56,12 +57,12 @@ class Game:
         else:
             self.index_condition += 1
         self.condition = Game.conditions[self.index_condition]
+        return phrase
 
     def get_roles(self):
         """Получение ролей"""
         assert self.index_condition == 0, 'Incorrect condition'  # Получение ролей возможно только после регистрации
         assert roles.minimum <= len(self.players) <= roles.maximum, 'Incorrect count of players'  # Проверка количества игроков
-        self.next_condition()
         roles_list = roles.roles[str(len(self.players))]
         shuffle(roles_list)
         for player, role in zip(self.players, roles_list):
@@ -73,8 +74,8 @@ class Game:
     def add_player(self, player: Player):
         """Добавление пользователя"""
         assert self.condition == Game.conditions[0], 'Can add player only in Registration'
-        self.players.append(Player)
-        self.alive_players.append(Player)
+        self.players.append(player)
+        self.alive_players.append(player)
 
     def kill(self, player_id: int):
         """Убийство игрока"""
