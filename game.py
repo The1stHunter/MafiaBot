@@ -94,17 +94,20 @@ class Game:
     def vote(self, player_id: int, vote_id: int):
         """Голосование за игрока player_id - за кого голосуют
         vote_id - кто голосует"""
-        for player in self.players:
-            if player.id == vote_id:
-                if player.vote == 1:
-                    raise Exception  # Игрок голосует только 1 раз
+        vote_name = vote_surname = ''
+        for i in range(len(self.players)):
+            if self.players[i].id == vote_id:
+                vote_name = self.players[i].first_name
+                vote_surname = self.players[i].last_name
+                if self.players[i].vote == 1:
+                    return f'{self.players[i].first_name} {self.players[i].last_name}, Вы уже голосовали!'  # Игрок голосует только 1 раз
                 else:
-                    player.vote = 1
+                    self.players[i].vote = 1
                     break
-        for player in self.players:
-            if player.id == player_id:
-                player.votes_count += 1
-                return
+        for i in range(len(self.players)):
+            if self.players[i].id == player_id:
+                self.players[i].votes_count += 1
+                return f'{vote_name} {vote_surname} отдаёт голос за {self.players[i].first_name} {self.players[i].last_name}'
 
     def check_end_game(self):
         """Проверяет продолжится ли игра или нет"""
