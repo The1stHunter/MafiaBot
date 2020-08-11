@@ -177,3 +177,10 @@ class Game:
         for player in self.players:
             msg += f'{player.first_name} {player.last_name} - {player.role}\n'
         return msg
+
+    @property
+    def black_alive_players(self):
+        """Все живые чёрные игроки"""
+
+    # Используется для пересылки сообщений между мафиями
+        return [player for player in self.players if player.alive == 1 and player.role.color == 'Black']
