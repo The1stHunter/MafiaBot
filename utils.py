@@ -170,5 +170,3 @@ def end_game(chat_id: str):
             del game[str(chat_id)]
         except KeyError:
             pass
-
-

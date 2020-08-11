@@ -2,9 +2,8 @@ import telebot
 from config import token
 import roles
 import utils
-import player
+from player import Player
 from telebot import types
-
 
 bot = telebot.TeleBot(token)
 start_message = """Привет! Я ведущий игры в мафию.
@@ -123,7 +122,7 @@ def vote(message: telebot.types.Message):
 
 
 @bot.message_handler(commands=['kill'])
-def kill(message:telebot.types.Message):
+def kill(message: telebot.types.Message):
     """Убийство мафии"""
     if message.from_user.id == message.chat.id:
         """Личная переписка с ботом"""
@@ -134,7 +133,7 @@ def kill(message:telebot.types.Message):
                 keyboard = types.InlineKeyboardMarkup()
                 all_players = game.alive_players
                 for p in all_players:
-                    name = types.InlineKeyboardButton(text=f'{player.first_name} {p.last_name}', callback_data=p.id)
+                    name = types.InlineKeyboardButton(text=f'{p.first_name} {p.last_name}', callback_data=p.id)
                     keyboard.add(name)
                 bot.send_message(message.chat.id, text='Убийство!', reply_markup=keyboard)
             else:
@@ -142,15 +141,13 @@ def kill(message:telebot.types.Message):
         else:
             bot.reply_to(message, 'Сейчас не стадия мафии!')
 
-
     else:
         """Групповая переписка с ботом"""
         bot.send_message(message.chat.id, text='Не туда пишешь, дурачок')
 
 
-
 @bot.message_handler(commands=['check'])
-def check(message:telebot.types.Message):
+def check(message: telebot.types.Message):
     """Проверка шерифа"""
     if message.from_user.id == message.chat.id:
         """Личная переписка с ботом"""
@@ -159,7 +156,7 @@ def check(message:telebot.types.Message):
             keyboard = types.InlineKeyboardMarkup()
             all_players = game.alive_players
             for p in all_players:
-                name = types.InlineKeyboardButton(text=f'{player.first_name} {p.last_name}', callback_data=p.id)
+                name = types.InlineKeyboardButton(text=f'{p.first_name} {p.last_name}', callback_data=p.id)
                 keyboard.add(name)
             bot.send_message(message.chat.id, text='Проверка!', reply_markup=keyboard)
         else:
@@ -169,37 +166,41 @@ def check(message:telebot.types.Message):
         bot.send_message(message.chat.id, text='Не туда пишешь, дурачок')
 
 
-@bot.callback_query_handler(func=lambda call: True)
-def callback_worker_new(call: types.CallbackQuery):
+@bot.callback_query_handler(func=lambda call: utils.get_game(call.message.chat.id).condition == 'Mafia')
+def mafia(call: types.CallbackQuery):
+    """Обработка стадии игры Мафия"""
     game = utils.get_game(call.message.chat.id)
+    player_role = game.get_role_by_id(call.message.chat.id)
+    if player_role.vote == 1:
+        game.kill(call.data)
+        utils.set_game(utils.get_chat(call.from_user.id), game)
+    elif player_role.vote == 0:
+        # TODO: Если добавлять в игру третью мафию, искать придётся не по роли Дон, а по голосующей роли (vote == 1)
+        # TODO: Нет самой функции get_id_by_role
+        bot.send_message(game.get_id_by_role('don'), f"{game.get_name_by_id(call.message.chat.id)} советует "
+                                                     f"тебе убить {game.get_name_by_id(call.data)}")
+        # TODO: предлагаю такой вариант
+        for player in game.alive_players:
+            if player.role.color == 'Black':
+                bot.send_message(player.id, f"{game.get_name_by_id(call.message.chat.id)} советует "
+                                            f"убить {game.get_name_by_id(call.data)}")
 
-    #TODO: сделать так чтобы это работало в многопоточности
-    if call.message.from_user.id == call.message.chat.id:
-        """Личная переписка с ботом"""
-        player_role = game.get_role_by_id(call.message.chat.id)
-        if game.condition == 'Mafia':
-            if  player_role.vote == 1:
-                game.kill(call.data)
-            elif player_role.vote == 0:
-                bot.send_message(game.get_id_by_role('don'),f"{game.get_name_by_id(call.message.chat.id)} созветует тебе убить {game.get_name_by_id(call.data)}")
 
-        if game.condition == 'Sheriff':
-            bot.send_message(call.message.chat.id,f"Цвет игрока {game.get_name_by_id(call.data)} - {game.get_role_by_id(call.data).color}")
-    else:
-        """Групповая переписка с ботом"""
+@bot.callback_query_handler(func=lambda call: utils.get_game(call.message.chat.id).condition == 'Sheriff')
+def sheriff(call: types.CallbackQuery):
+    """Обработка стадии игры Шериф"""
+    game = utils.get_game(call.message.chat.id)
+    bot.send_message(call.message.chat.id,
+                     f"Цвет игрока {game.get_name_by_id(call.data)} - {game.get_role_by_id(call.data).color}")
 
-        if game.condition == 'Vote':
-            msg = game.vote(int(call.data), int(call.from_user.id))
-            bot.send_message(call.message.chat.id, msg)
-            utils.set_game(call.message.chat.id, game)
-            
 
-@bot.callback_query_handler(func=lambda call: True)
-def callback_worker_old(call: types.CallbackQuery):
+@bot.callback_query_handler(func=lambda call: utils.get_game(call.message.chat.id).condition == 'Vote')
+def vote(call: types.CallbackQuery):
+    """Обработка голосования"""
     # TODO: сделать так чтобы это работало в многопоточности
     game = utils.get_game(call.message.chat.id)
-    # Если сейчас стадия голосования
-    if game.condition == 'Vote':
+    # Если игрок жив, он может голосовать
+    if call.from_user.id in [player.id for player in game.alive_players]:
         msg = game.vote(int(call.data), int(call.from_user.id))
         bot.send_message(call.message.chat.id, msg)
         # Если все проголосовали, переходим на следующую стадию
@@ -208,11 +209,14 @@ def callback_worker_old(call: types.CallbackQuery):
             bot.send_message(call.message.chat.id, msg)
         # Если игра закончилась
         if game.check_end_game():
+            bot.send_message(call.message.chat.id, f'Роли были такие:\n{game.roles()}')
             # utils.end_game(call.message.chat.id)
             # utils.delete_chat(call.message.chat.id)
             pass
         utils.set_game(call.message.chat.id, game)
-
+    # Если игрок мёртв
+    else:
+        bot.send_message(call.message.chat.id, f'{game.get_name_by_id(call.from_user.id)}, мёртвые не голосуют!')
 
 
 @bot.message_handler(commands=['test'])
