@@ -3,7 +3,7 @@ import time
 from player import Player
 import roles
 from random import shuffle
-
+#GitTest
 
 class Game:
     """Класс игры в Мафию"""
@@ -195,7 +195,6 @@ class Game:
             msg += f'{player.first_name} {player.last_name} - {player.role}\n'
         return msg
 
-    @property
     def alive_players(self):
         """Все живые игроки"""
         return [player for player in self.players if player.alive == 1]

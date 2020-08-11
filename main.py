@@ -134,6 +134,9 @@ def kill(message: telebot.types.Message):
                 for p in all_players:
                     name = types.InlineKeyboardButton(text=f'{p.first_name} {p.last_name}', callback_data=p.id)
                     keyboard.add(name)
+                alive_mates = []
+                alive_mates.append(f'{player.first_name} {player.last_name}' for player in game.black_alive_players)
+                bot.send_message(message.chat.id, text = f"Твои напарники этой ночью: {game.black_alive_players.join('; ') }")
                 bot.send_message(message.chat.id, text='Убийство!', reply_markup=keyboard)
             else:
                 bot.reply_to(message, 'Ты не мафия, не прикидывайся!')
@@ -147,19 +150,31 @@ def kill(message: telebot.types.Message):
 
 @bot.message_handler(commands=['check'])
 def check(message: telebot.types.Message):
-    """Проверка шерифа"""
+    """Проверка шерифа и дона"""
     if message.from_user.id == message.chat.id:
         """Личная переписка с ботом"""
         game = utils.get_game(utils.get_chat(message.chat.id))
-        if game.condition == 'Sheriff':
-            keyboard = types.InlineKeyboardMarkup()
-            all_players = game.alive_players
-            for p in all_players:
-                name = types.InlineKeyboardButton(text=f'{p.first_name} {p.last_name}', callback_data=p.id)
-                keyboard.add(name)
-            bot.send_message(message.chat.id, text='Проверка!', reply_markup=keyboard)
-        else:
-            bot.reply_to(message, 'Сейчас не стадия шерифа!')
+        if game.don.id == message.chat.id:
+            if game.condition == 'Mafia':
+                keyboard = types.InlineKeyboardMarkup()
+                all_players = game.players
+                for p in all_players:
+                    name = types.InlineKeyboardButton(text=f'{p.first_name} {p.last_name}', callback_data=p.id)
+                    keyboard.add(name)
+                bot.send_message(message.chat.id, text='Игра! Угадай кто шериф', reply_markup=keyboard)
+            else:
+                bot.reply_to(message, 'Сейчас не стадия мафии!')
+
+        elif game.sheriff.id == message.chat.id:
+            if game.condition == 'Sheriff':
+                keyboard = types.InlineKeyboardMarkup()
+                all_players = game.players
+                for p in all_players:
+                    name = types.InlineKeyboardButton(text=f'{p.first_name} {p.last_name}', callback_data=p.id)
+                    keyboard.add(name)
+                bot.send_message(message.chat.id, text='Игра! Угадай кто мафия', reply_markup=keyboard)
+            else:
+                bot.reply_to(message, 'Сейчас не стадия шерифа!')
     else:
         """Групповая переписка с ботом"""
         bot.send_message(message.chat.id, text='Не туда пишешь, дурачок')
