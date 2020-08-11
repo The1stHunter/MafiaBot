@@ -81,7 +81,6 @@ def role(message: telebot.types.Message):
             game = utils.get_game(chat)
             bot.send_message(message.from_user.id, f'Ты - {game.get_role_by_id(message.from_user.id)}!')
             utils.change_role_status(message.from_user.id, '3')
-
             # Если это был последний получивший роль - переходим на следующую стадию
             if utils.get_count_ready_role(chat) == len(game.players):
                 msg = game.next_condition()
@@ -166,57 +165,86 @@ def check(message: telebot.types.Message):
         bot.send_message(message.chat.id, text='Не туда пишешь, дурачок')
 
 
-@bot.callback_query_handler(func=lambda call: utils.get_game(call.message.chat.id).condition == 'Mafia')
+@bot.callback_query_handler(func=lambda call: utils.get_game(utils.get_chat(call.message.chat.id)).condition == 'Mafia')
 def mafia(call: types.CallbackQuery):
     """Обработка стадии игры Мафия"""
-    game = utils.get_game(call.message.chat.id)
-    player_role = game.get_role_by_id(call.message.chat.id)
-    if player_role.vote == 1:
-        game.kill(call.data)
-        utils.set_game(utils.get_chat(call.from_user.id), game)
-    elif player_role.vote == 0:
-        # TODO: Если добавлять в игру третью мафию, искать придётся не по роли Дон, а по голосующей роли (vote == 1)
-        # TODO: Нет самой функции get_id_by_role
-        bot.send_message(game.get_id_by_role('don'), f"{game.get_name_by_id(call.message.chat.id)} советует "
-                                                     f"тебе убить {game.get_name_by_id(call.data)}")
-        # TODO: предлагаю такой вариант
-        for player in game.alive_players:
-            if player.role.color == 'Black':
-                bot.send_message(player.id, f"{game.get_name_by_id(call.message.chat.id)} советует "
-                                            f"убить {game.get_name_by_id(call.data)}")
+    game = utils.get_game(utils.get_chat(call.message.chat.id))
+    # Если колбек пришёл от мафии
+    if call.from_user.id in [player.id for player in game.black_alive_players]:
+        player_role = game.get_role_by_id(call.message.chat.id)
+        if player_role.vote == 1:
+            game.kill(call.data)
+            # Отслаем кого убили всем живым мафиям
+            for player in game.black_alive_players:
+                # Кроме себя
+                if player.id != call.from_user.id:
+                    bot.send_message(player.id, f"{game.get_name_by_id(call.message.chat.id)} "
+                                                f"убил {game.get_name_by_id(call.data)}")
+            game.next_condition()
+            utils.set_game(utils.get_chat(call.from_user.id), game)
+        elif player_role.vote == 0:
+            # Отсылаем своё мнение всем другим мафиям
+            for player in game.black_alive_players:
+                # Кроме себя
+                if player.id != call.from_user.id:
+                    bot.send_message(player.id, f"{game.get_name_by_id(call.message.chat.id)} советует "
+                                                f"убить {game.get_name_by_id(call.data)}")
 
 
-@bot.callback_query_handler(func=lambda call: utils.get_game(call.message.chat.id).condition == 'Sheriff')
+@bot.callback_query_handler(
+    func=lambda call: utils.get_game(utils.get_chat(call.message.chat.id)).condition == 'Sheriff')
 def sheriff(call: types.CallbackQuery):
     """Обработка стадии игры Шериф"""
-    game = utils.get_game(call.message.chat.id)
-    bot.send_message(call.message.chat.id,
-                     f"Цвет игрока {game.get_name_by_id(call.data)} - {game.get_role_by_id(call.data).color}")
+    game = utils.get_game(utils.get_chat(call.message.chat.id))
+    # Если колбек пришёл от живого шерифа:
+    if call.from_user.id == game.sheriff.id and call.from_user.id in [player.id for player in game.alive_players]:
+        bot.send_message(call.message.chat.id,
+                         f"Цвет игрока {game.get_name_by_id(call.data)} - {game.get_role_by_id(call.data).color}")
+        game.next_condition()
+        utils.set_game(utils.get_chat(call.message.chat.id), game)
 
 
-@bot.callback_query_handler(func=lambda call: utils.get_game(call.message.chat.id).condition == 'Vote')
+@bot.callback_query_handler(func=lambda call: utils.get_game(utils.get_chat(call.message.chat.id)).condition == 'Don')
+def don(call: types.CallbackQuery):
+    """Обработка стадии игры Дон"""
+    game = utils.get_game(utils.get_chat(call.message.chat.id))
+    # Если колбек пришёл от живого дон:
+    if call.from_user.id == game.don.id and call.from_user.id in [player.id for player in game.alive_players]:
+        if call.data == game.sheriff.id:
+            bot.send_message(call.message.chat.id,
+                             f"Да, {game.get_name_by_id(call.data)} - Шериф!")
+        else:
+            bot.send_message(call.message.chat.id, f'Не-а, {game.get_name_by_id(call.data)} - не Шериф!')
+        game.next_condition()
+        utils.set_game(utils.get_chat(call.message.chat.id), game)
+
+
+@bot.callback_query_handler(func=lambda call: utils.get_game(utils.get_chat(call.message.chat.id)).condition == 'Vote')
 def vote(call: types.CallbackQuery):
     """Обработка голосования"""
     # TODO: сделать так чтобы это работало в многопоточности
-    game = utils.get_game(call.message.chat.id)
-    # Если игрок жив, он может голосовать
-    if call.from_user.id in [player.id for player in game.alive_players]:
-        msg = game.vote(int(call.data), int(call.from_user.id))
-        bot.send_message(call.message.chat.id, msg)
-        # Если все проголосовали, переходим на следующую стадию
-        if game.count_vote == len(game.players):
-            msg = game.next_condition()
+    # Голосовать можно только в чате
+    if call.from_user.id != call.message.chat.id:
+        game = utils.get_game(call.message.chat.id)
+
+        # Если игрок жив, он может голосовать
+        if call.from_user.id in [player.id for player in game.alive_players]:
+            msg = game.vote(int(call.data), int(call.from_user.id))
             bot.send_message(call.message.chat.id, msg)
-        # Если игра закончилась
-        if game.check_end_game():
-            bot.send_message(call.message.chat.id, f'Роли были такие:\n{game.roles()}')
-            # utils.end_game(call.message.chat.id)
-            # utils.delete_chat(call.message.chat.id)
-            pass
-        utils.set_game(call.message.chat.id, game)
-    # Если игрок мёртв
-    else:
-        bot.send_message(call.message.chat.id, f'{game.get_name_by_id(call.from_user.id)}, мёртвые не голосуют!')
+            # Если все проголосовали, переходим на следующую стадию
+            if game.count_vote == len(game.players):
+                msg = game.next_condition()
+                bot.send_message(call.message.chat.id, msg)
+            # Если игра закончилась
+            if game.check_end_game():
+                bot.send_message(call.message.chat.id, f'Роли были такие:\n{game.roles()}')
+                # utils.end_game(call.message.chat.id)
+                # utils.delete_chat(call.message.chat.id)
+                pass
+            utils.set_game(call.message.chat.id, game)
+        # Если игрок мёртв
+        else:
+            bot.send_message(call.message.chat.id, f'{game.get_name_by_id(call.from_user.id)}, мёртвые не голосуют!')
 
 
 @bot.message_handler(commands=['test'])

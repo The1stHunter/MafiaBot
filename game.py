@@ -1,3 +1,5 @@
+import time
+
 from player import Player
 import roles
 from random import shuffle
@@ -14,16 +16,17 @@ class Game:
         self.condition = 'Registration'  # Состояние игры
         self.index_condition = 0  # Индекс состояния
         self.round = 0  # Номер текущего круга
-        self.alive_players = []  # Список живых людей
         self.winner = ''  # Победившая в игре команда
         self.killed = None  # Убитый ночью или в хоже голосования человек
         self.don_appear = 0  # Есть ли Дон и Шериф в этой игре
         self.count_vote = 0  # Количетсво проголосовавших на этом круге
 
     def next_condition(self):
+        # TODO: Если Дон умер, мафиям по очереди переходит право убивать
         """Переход игры в следующее состояние
         Возвращает фразу, которую говорит бот"""
         phrase = ''
+        # ГОЛОСОВАНИЕ - МАФИЯ
         # Если переходим из голосования, все счётчики для голосования обнуляются
         if self.condition == 'Vote':
             # Проводим конец голосования
@@ -42,6 +45,8 @@ class Game:
             else:
                 phrase += '\nВ городе ночь.'
             self.killed = None  # После оглашения последнего убитого обнуляем эти данные
+
+        # ШЕРИФ - ГОЛОСОВАНИЕ
         elif self.condition == 'Sheriff':
             # Оглашаем ночное убийство
             phrase = f'В городе утро. Утро не доброе. Убит(а) {self.get_name_by_id(self.killed)}'
@@ -49,14 +54,18 @@ class Game:
             # Проводим проверку победы
             if self.check_end_game():
                 phrase += f'Стоп-игра! {self.winner}'
+
+        # РЕГИСТРАЦИЯ - ПОЛУЧЕНИЕ РОЛЕЙ
         elif self.condition == 'Registration':
             self.get_roles()
             phrase = 'Регистрация завершена! Напишите мне в личку /role чтобы узнать свои роли (Моя личка ' \
                      'https://t.me/TFH_mafia_bot) И приступайте к обсуждению.'
 
+        # ПОЛУЧЕНИЕ РОЛЕЙ - ГОЛОСОВАНИЕ
         elif self.condition == 'GetRole':
             phrase += 'Все ирогки прочли свои роли!\nПриступайте к обсуждению, когда будете готовы голосовать, ' \
                       'напишите /vote '
+
         # Зацикливание переходов
         if self.index_condition == 5:
             self.index_condition = 2
@@ -65,8 +74,20 @@ class Game:
             self.index_condition += 1
         self.condition = Game.conditions[self.index_condition]
 
+        # Если Дона и Шерифа нет в игре переходим на следующую стадию
         if self.condition == 'Don' and self.don_appear == 0:
             return self.next_condition()
+        if self.condition == 'Sheriff' and self.don_appear == 0:
+            return self.next_condition()
+
+        # Если Дона или Шерифа убили перехоим на следующую стадию через минуту
+        if self.don_appear == 1:
+            if self.condition == 'Don' and self.don not in self.alive_players:
+                time.sleep(60)
+                return self.next_condition()
+            if self.condition == 'Sheriff' and self.sheriff not in self.alive_players:
+                time.sleep(60)
+                return self.next_condition()
         return phrase
 
     def get_roles(self):
@@ -103,11 +124,6 @@ class Game:
                             self.players[i].vote = 1
                             break
                 break
-        # Убираем из списка живых
-        for i in range(len(self.alive_players)):
-            if self.alive_players[i].id == player_id:
-                self.alive_players.pop(i)
-                return
 
     def vote(self, player_id: int, vote_id: int):
         """Голосование за игрока player_id - за кого голосуют
@@ -173,7 +189,39 @@ class Game:
                 return f'{player.first_name} {player.last_name}'
 
     def roles(self):
+        """Вывод списка игроков и их ролей"""
         msg = ''
         for player in self.players:
             msg += f'{player.first_name} {player.last_name} - {player.role}\n'
         return msg
+
+    @property
+    def alive_players(self):
+        """Все живые игроки"""
+        return [player for player in self.players if player.alive == 1]
+
+    @property
+    def black_players(self):
+        """Все черные игроки"""
+        # Используется для проверки шерифа
+        return [player for player in self.players if player.role.color == 'Black']
+
+    @property
+    def black_alive_players(self):
+        """Все живые чёрные игроки"""
+        # Используется для пересылки сообщений между мафиями
+        return [player for player in self.players if player.alive == 1 and player.role.color == 'Black']
+
+    @property
+    def don(self):
+        """Дон игры"""
+        for player in self.players:
+            if player.role.role == roles.don:
+                return player
+
+    @property
+    def sheriff(self):
+        """Шериф игры"""
+        for player in self.players:
+            if player.role.role == roles.sheriff:
+                return player
