@@ -125,6 +125,19 @@ def get_role_status(player_id: str):
     return result[0][0] if result else result
 
 
+def get_count_ready_role(chat_id: str):
+    sql = """SELECT COUNT(id)
+    FROM Players
+    WHERE chat = (?)
+    AND role_status in (?);"""
+
+    conn = sqlite3.connect(database_name)
+    cursor = conn.cursor()
+    result = cursor.execute(sql, (chat_id, '3')).fetchall()
+    conn.close()
+    return result[0][0] if result else result
+
+
 def start_game(chat_id: str, players_info: list):
     """Создание новой игры"""
     assert roles.minimum <= len(players_info) <= roles.maximum, 'Incorrect count of players'
