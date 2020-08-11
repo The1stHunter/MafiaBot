@@ -53,6 +53,7 @@ class Game:
             self.get_roles()
             phrase = 'Регистрация завершена! Напишите мне в личку /role чтобы узнать свои роли (Моя личка ' \
                      'https://t.me/TFH_mafia_bot) И приступайте к обсуждению.'
+
         elif self.condition == 'GetRole':
             phrase += 'Все ирогки прочли свои роли!\nПриступайте к обсуждению, когда будете готовы голосовать, ' \
                       'напишите /vote '
@@ -63,6 +64,7 @@ class Game:
         else:
             self.index_condition += 1
         self.condition = Game.conditions[self.index_condition]
+
         if self.condition == 'Don' and self.don_appear == 0:
             return self.next_condition()
         return phrase
