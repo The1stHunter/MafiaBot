@@ -1,7 +1,7 @@
 from player import Player
 import roles
 from random import shuffle
-
+#GitTest
 
 class Game:
     """Класс игры в Мафию"""
