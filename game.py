@@ -93,21 +93,10 @@ class Game:
         else:
             self.condition = Game.conditions[Game.conditions.index(self.condition)+1]
 
-
         # Если Дона и Шерифа нет в игре переходим на следующую стадию
-        if self.condition == 'Don' and self.don_appear == 0:
-            return self.next_condition()
-        if self.condition == 'Sheriff' and self.don_appear == 0:
+        if self.condition in ['Don', 'EndDon', 'Sheriff', 'EndSheriff'] and self.don_appear == 0:
             return self.next_condition()
 
-        # # Если Дона или Шерифа убили перехоим на следующую стадию через минуту
-        # if self.don_appear == 1:
-        #     if self.condition == 'Don' and self.don not in self.alive_players:
-        #         time.sleep(60)
-        #         return self.next_condition()
-        #     if self.condition == 'Sheriff' and self.sheriff not in self.alive_players:
-        #         time.sleep(60)
-        #         return self.next_condition()
         return phrase
 
     def get_roles(self):

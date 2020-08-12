@@ -87,8 +87,8 @@ def check_sheriff(game: Game):
 
     if game.check_end_game():
         bot.send_message(game.id, f'Роли были такие:\n{game.roles()}')
-        # utils.end_game(call.message.chat.id)
-        # utils.delete_chat(call.message.chat.id)
+        utils.end_game(game.id)
+        utils.delete_chat(game.id)
 
 
 start_message = """Привет! Я ведущий игры в мафию.
@@ -292,8 +292,8 @@ def callback(call: types.CallbackQuery):
                     # Если игра закончилась
                     if game.check_end_game():
                         bot.send_message(call.message.chat.id, f'Роли были такие:\n{game.roles()}')
-                        # utils.end_game(call.message.chat.id)
-                        # utils.delete_chat(call.message.chat.id)
+                        utils.end_game(call.message.chat.id)
+                        utils.delete_chat(call.message.chat.id)
                         return
                     kill(game)
                 else:
