@@ -10,13 +10,12 @@ from random import shuffle
 class Game:
     """Класс игры в Мафию"""
     # Возможные состояния чата
-    conditions = ['Registration', 'GetRole', 'Vote', 'Mafia', 'Don', 'Sheriff']
+    conditions = ['Registration', 'GetRole', 'Vote', 'Mafia', 'EndMafia', 'Don', 'EndDon', 'Sheriff', 'EndSheriff']
 
     def __init__(self, chat_id: int, ):
         self.id = chat_id  # Id чата в котором проходит игра
         self.players = []  # Список игроков класса Player
         self.condition = 'Registration'  # Состояние игры
-        self.index_condition = 0  # Индекс состояния
         self.round = 0  # Номер текущего круга
         self.winner = ''  # Победившая в игре команда
         self.killed = None  # Убитый ночью или в хоже голосования человек
@@ -50,19 +49,19 @@ class Game:
             self.killed = None  # После оглашения последнего убитого обнуляем эти данные
 
         # МАФИЯ - ДОН
-        elif self.condition == 'Mafia':
+        elif self.condition == 'EndMafia':
             if self.don_appear:
                 phrase += 'Мафия засыпает. Просыпается Дон.\nДон выбирает игрока чтобы узнать, является ли игрок ' \
                           'Шерифом. '
 
         # ДОН - ШЕРИФ
-        elif self.condition == 'Don':
+        elif self.condition == 'EndDon':
             if self.don_appear:
                 phrase += 'Дон Засыпает. Просыпается Шериф.\nШериф выбирает игрока чтобы узнать, является ли ' \
                           'игрок Мафией. '
 
         # ШЕРИФ - ГОЛОСОВАНИЕ
-        elif self.condition == 'Sheriff':
+        elif self.condition == 'EndSheriff':
             # Оглашаем ночное убийство
             if self.killed:
                 phrase = f'В городе утро. Утро не доброе. Убит(а) {self.get_name_by_id(self.killed)}\n'
@@ -88,12 +87,12 @@ class Game:
                       'напишите /vote '
 
         # Зацикливание переходов
-        if self.index_condition == 5:
-            self.index_condition = 2
+        if self.condition == Game.conditions[-1]:
+            self.condition = Game.conditions[2]
             self.round += 1
         else:
-            self.index_condition += 1
-        self.condition = Game.conditions[self.index_condition]
+            self.condition = Game.conditions[Game.conditions.index(self.condition)+1]
+
 
         # Если Дона и Шерифа нет в игре переходим на следующую стадию
         if self.condition == 'Don' and self.don_appear == 0:
@@ -113,7 +112,7 @@ class Game:
 
     def get_roles(self):
         """Получение ролей"""
-        assert self.index_condition == 0, 'Incorrect condition'  # Получение ролей возможно только после регистрации
+        assert self.condition == Game.conditions[0], 'Incorrect condition'  # Получение ролей возможно только после регистрации
         assert roles.minimum <= len(
             self.players) <= roles.maximum, 'Incorrect count of players'  # Проверка количества игроков
         roles_list = roles.roles[str(len(self.players))]

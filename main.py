@@ -34,10 +34,12 @@ def kill(game: Game):
     # Перезапись игры с записью убийства (которое в колбеках делается)
     game = utils.get_game(game.id)
     msg = game.next_condition()
+    # Если игра не переключилось на состояние Дона (мафия не сделал убийство), идём на следующее состояние ещё раз
+    if game.condition == 'EndMafia':
+        msg = game.next_condition()
     # Запись нового состояния
     utils.set_game(game.id, game)
     bot.send_message(game.id, msg)
-
 
     # Переход к жругой стадии
     check_don(game)
@@ -55,10 +57,12 @@ def check_don(game: Game):
 
     # Таймер на 60 секунд
     time.sleep(60)
+    game = utils.get_game(game.id)
     msg = game.next_condition()
+    if game.condition == 'EndDon':
+        msg = game.next_condition()
     bot.send_message(game.id, msg)
     utils.set_game(game.id, game)
-
     # Переход к жругой стадии
     check_sheriff(game)
 
@@ -74,7 +78,10 @@ def check_sheriff(game: Game):
 
     # Таймер на 60 секунд
     time.sleep(60)
+    game = utils.get_game(game.id)
     msg = game.next_condition()
+    if game.condition == 'EndSheriff':
+        msg = game.next_condition()
     bot.send_message(game.id, msg)
     utils.set_game(game.id, game)
 
@@ -221,6 +228,7 @@ def callback(call: types.CallbackQuery):
             player_role = game.get_role_by_id(call.message.chat.id)
             if player_role.vote == 1:
                 game.killed = int(call.data)
+                game.next_condition()
                 # Отсылаем кого убили всем живым мафиям
                 for player in game.black_alive_players:
                     # Кроме себя
@@ -228,8 +236,9 @@ def callback(call: types.CallbackQuery):
                         bot.send_message(player.id, f"{game.get_name_by_id(call.message.chat.id)} "
                                                     f"убил {game.get_name_by_id(int(call.data))}")
                     # Себе отсылаем кого убили
-                    bot.send_message(player.id, f"Вы "
-                                                f"убили {game.get_name_by_id(int(call.data))}")
+                    else:
+                        bot.send_message(player.id, f"Вы "
+                                                    f"убили {game.get_name_by_id(int(call.data))}")
                 utils.set_game(utils.get_chat(call.from_user.id), game)
             elif player_role.vote == 0:
                 # Отсылаем своё мнение всем другим мафиям
@@ -250,6 +259,7 @@ def callback(call: types.CallbackQuery):
         if call.from_user.id == game.sheriff.id and call.from_user.id in [player.id for player in game.alive_players]:
             bot.send_message(call.message.chat.id,
                              f"Цвет игрока {game.get_name_by_id(int(call.data))} - {game.get_role_by_id(int(call.data)).color}")
+            game.next_condition()
             utils.set_game(utils.get_chat(call.message.chat.id), game)
 
     elif game.condition == 'Don':
@@ -261,6 +271,7 @@ def callback(call: types.CallbackQuery):
                                  f"Да, {game.get_name_by_id(int(call.data))} - Шериф!")
             else:
                 bot.send_message(call.message.chat.id, f'Не-а, {game.get_name_by_id(int(call.data))} - не Шериф!')
+            game.next_condition()
             utils.set_game(utils.get_chat(call.message.chat.id), game)
 
     elif game.condition == 'Vote':
