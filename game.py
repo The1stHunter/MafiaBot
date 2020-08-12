@@ -38,6 +38,7 @@ class Game:
                 self.players[i].votes_count = 0
             self.count_vote = 0
             if self.killed:
+                self.kill()
                 phrase = f'По Итогу голосования убит(а) {self.get_name_by_id(self.killed)}.\n'
             else:
                 phrase = 'По итогу голосования никто не убит.\n'
@@ -62,6 +63,7 @@ class Game:
 
         # ШЕРИФ - ГОЛОСОВАНИЕ
         elif self.condition == 'Sheriff':
+            self.kill()
             # Оглашаем ночное убийство
             phrase = f'В городе утро. Утро не доброе. Убит(а) {self.get_name_by_id(self.killed)}\n'
             self.killed = None
@@ -90,6 +92,7 @@ class Game:
 
         # Если Дона и Шерифа нет в игре переходим на следующую стадию
         if self.condition == 'Don' and self.don_appear == 0:
+            print("ЭТО Я ВСЁ ИСПОРТИЛ")
             return self.next_condition()
         if self.condition == 'Sheriff' and self.don_appear == 0:
             return self.next_condition()
@@ -125,12 +128,11 @@ class Game:
         self.players.append(player)
         self.alive_players.append(player)
 
-    def kill(self, player_id: int):
+    def kill(self):
         """Убийство игрока"""
-        self.killed = player_id
         # Смена статуса жизни на 0
         for i in range(len(self.players)):
-            if self.players[i].id == player_id:
+            if self.players[i].id == self.killed:
                 self.players[i].alive = 0
                 # Если убили Дона голосовалка перекидывается на мафию
                 if str(self.players[i].role) == roles.don:
@@ -189,7 +191,7 @@ class Game:
                 player_id = player.id
         # Если человек с максимальным количеством голосов 1 - убиваем его
         if count_vote == 1:
-            self.kill(player_id)
+            self.killed = player_id
 
     def get_role_by_id(self, player_id: int):
         """Получение роли по id"""
