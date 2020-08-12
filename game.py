@@ -46,30 +46,35 @@ class Game:
             if self.check_end_game():
                 phrase += f'Стоп-игра! {self.winner}'
             else:
-                phrase += '\nВ городе ночь. Просыпается Мафия.\nМафия пишет мне в личку /kill для убийства.'
+                phrase += '\nВ городе ночь. Просыпается Мафия.\nМафия выбирает жертву убийства.'
             self.killed = None  # После оглашения последнего убитого обнуляем эти данные
 
         # МАФИЯ - ДОН
         elif self.condition == 'Mafia':
             if self.don_appear:
-                phrase += 'Мафия засыпает. Просыпается Дон.\nДон пишет в личку /check чтобы узнать, является ли игрок ' \
+                phrase += 'Мафия засыпает. Просыпается Дон.\nДон выбирает игрока чтобы узнать, является ли игрок ' \
                           'Шерифом. '
 
         # ДОН - ШЕРИФ
         elif self.condition == 'Don':
             if self.don_appear:
-                phrase += 'Дон Засыпает. Просыпается Шериф.\nШериф пишет в личку /check чтобы узнать, является ли ' \
+                phrase += 'Дон Засыпает. Просыпается Шериф.\nШериф выбирает игрока чтобы узнать, является ли ' \
                           'игрок Мафией. '
 
         # ШЕРИФ - ГОЛОСОВАНИЕ
         elif self.condition == 'Sheriff':
-            self.kill()
             # Оглашаем ночное убийство
-            phrase = f'В городе утро. Утро не доброе. Убит(а) {self.get_name_by_id(self.killed)}\n'
+            if self.killed:
+                phrase = f'В городе утро. Утро не доброе. Убит(а) {self.get_name_by_id(self.killed)}\n'
+                self.kill()
+            else:
+                phrase += 'В городе утро. Утро доброе мафия промахнулась!\n'
             self.killed = None
             # Проводим проверку победы
             if self.check_end_game():
                 phrase += f'Стоп-игра! {self.winner}'
+            else:
+                phrase += 'Когда будете готовы голосовать, пишите /vote'
 
         # РЕГИСТРАЦИЯ - ПОЛУЧЕНИЕ РОЛЕЙ
         elif self.condition == 'Registration':
@@ -92,19 +97,18 @@ class Game:
 
         # Если Дона и Шерифа нет в игре переходим на следующую стадию
         if self.condition == 'Don' and self.don_appear == 0:
-            print("ЭТО Я ВСЁ ИСПОРТИЛ")
             return self.next_condition()
         if self.condition == 'Sheriff' and self.don_appear == 0:
             return self.next_condition()
 
-        # Если Дона или Шерифа убили перехоим на следующую стадию через минуту
-        if self.don_appear == 1:
-            if self.condition == 'Don' and self.don not in self.alive_players:
-                time.sleep(60)
-                return self.next_condition()
-            if self.condition == 'Sheriff' and self.sheriff not in self.alive_players:
-                time.sleep(60)
-                return self.next_condition()
+        # # Если Дона или Шерифа убили перехоим на следующую стадию через минуту
+        # if self.don_appear == 1:
+        #     if self.condition == 'Don' and self.don not in self.alive_players:
+        #         time.sleep(60)
+        #         return self.next_condition()
+        #     if self.condition == 'Sheriff' and self.sheriff not in self.alive_players:
+        #         time.sleep(60)
+        #         return self.next_condition()
         return phrase
 
     def get_roles(self):
@@ -136,9 +140,9 @@ class Game:
                 self.players[i].alive = 0
                 # Если убили Дона голосовалка перекидывается на мафию
                 if str(self.players[i].role) == roles.don:
-                    for i in range(len(self.players)):
-                        if str(self.players[i].role) == roles.mafia:
-                            self.players[i].role.vote = 1
+                    for j in range(len(self.players)):
+                        if str(self.players[j].role) == roles.mafia:
+                            self.players[j].role.vote = 1
                             break
                 break
 
