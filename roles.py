@@ -1,5 +1,5 @@
 mafia, don, civilian, sheriff = 'Мафия', 'Дон', 'Мирный житель', 'Коммисар'
-minimum, maximum = 1, 7
+minimum, maximum = 4, 7
 don_appear = 6
 
 

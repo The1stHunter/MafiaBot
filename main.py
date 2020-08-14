@@ -3,14 +3,11 @@ from config import token
 import roles
 import utils
 from game import Game
-from player import Player
 from telebot import types
 import time
 
-# TODO: переход с Дона на мертвого Шерифа
 # TODO: команды после регистрации не должны класть бота (kill, vote...)
 # TODO: правильные ответы игроку после смерти
-# TODO: показывать роли в конце игры при победе мафии после ночи
 
 
 bot = telebot.TeleBot(token)
@@ -41,8 +38,14 @@ def kill(game: Game):
     utils.set_game(game.id, game)
     bot.send_message(game.id, msg)
 
-    # Переход к жругой стадии
-    check_don(game)
+    # Переход к другой стадии
+    if game.don_appear:
+        check_don(game)
+    else:
+        if game.check_end_game():
+            bot.send_message(game.id, f'Роли были такие:\n{game.roles()}')
+            utils.end_game(game.id)
+            utils.delete_chat(game.id)
 
 
 def check_don(game: Game):
@@ -185,7 +188,8 @@ def role(message: telebot.types.Message):
                 bot.send_message(message.chat.id, game.alive_mates_names(message.from_user.id))
 
         else:
-            print('Твоя бд сломана!!!')
+            print(message.from_user.id)
+            print(utils.get_role_status(message.from_user.id))
     else:
         bot.reply_to(message, 'Напиши мне это в личку')
 
@@ -306,7 +310,7 @@ def callback(call: types.CallbackQuery):
 
 @bot.message_handler(commands=['test'])
 def test(message):
-    bot.reply_to(message, message.chat.id)
+    bot.reply_to(message, 'Ника мафия)')
 
 
 @bot.message_handler(commands=['endgame'])
